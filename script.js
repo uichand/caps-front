@@ -442,14 +442,14 @@
 
     if (!div) return;
 
-    let label =
-      "판단불가";
+   let label =
+  "판단불가";
 
-    let badgeBg =
-      "#e5e7eb";
+let badgeBg =
+  "#ede9fe";
 
-    let badgeColor =
-      "#374151";
+let badgeColor =
+  "#6d28d9";
 
     if (
       result.risk ===
