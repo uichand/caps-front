@@ -681,8 +681,8 @@ if (
       `result-card ${risk}`;
 
     let label = "안전";
-    let badgeBg = "#dcfce7";
-    let badgeColor = "#166534";
+    badgeBg = "#16a34a";
+badgeColor = "#ffffff";
 
     if (risk === "danger") {
       label = "위험";
