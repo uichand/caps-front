@@ -122,11 +122,21 @@ function getErrorMessage(data, fallback) {
         body: formData
       });
 
-      if (!response.ok) {
-        throw new Error("이미지 분석 중 오류가 발생했습니다.");
-      }
+     if (!response.ok) {
 
-      const data = await response.json();
+  const errorData =
+    await response.json();
+
+  throw new Error(
+    getErrorMessage(
+      errorData,
+      "이미지 분석 중 오류가 발생했습니다."
+    )
+  );
+}
+
+      const data =
+      await response.json();
 
       let clauses = [];
 
@@ -134,11 +144,7 @@ function getErrorMessage(data, fallback) {
         clauses = data;
       } else if (Array.isArray(data.clauses)) {
         clauses = data.clauses;
-      } else if (typeof data.text === "string") {
-        clauses = splitClausesByPeriod(data.text);
-      } else if (typeof data.ocr_text === "string") {
-        clauses = splitClausesByPeriod(data.ocr_text);
-      }
+      } 
 
       clauses = clauses
         .map((item, index) => {
@@ -163,14 +169,17 @@ function getErrorMessage(data, fallback) {
 
       await sendClausesToServer(clauses);
 
-    } catch (error) {
-      console.error(error);
-      alert("이미지 분석 중 오류가 발생했습니다.");
-    } finally {
-      popup.style.display = "none";
-    }
-  }
+    }  catch (error) {
 
+  console.error(error);
+
+  alert(
+    error.message ||
+    "오류가 발생했습니다."
+  );
+
+  }
+}
   async function analyzeDirectText() {
 
   const text =
@@ -183,36 +192,61 @@ function getErrorMessage(data, fallback) {
     return;
   }
 
-  const clauses =
-    splitClausesByPeriod(text)
-      .map((content, index) => ({
-        id: index + 1,
-        clause: content
-      }));
+  try {
 
-  await sendClausesToServer(
-    clauses
-  );
+    const response =
+      await fetchWithTimeout(
+        BASE_API_URL +
+        "/api/v1/extract/clause",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body: JSON.stringify({
+            text: text
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    let clauses = [];
+
+    if (Array.isArray(data)) {
+      clauses = data;
+    }
+    else if (Array.isArray(data.clauses)) {
+      clauses = data.clauses;
+    }
+
+    clauses =
+      clauses.map(
+        (item, index) => ({
+          id: index + 1,
+          clause: item
+        })
+      );
+
+    await sendClausesToServer(
+      clauses
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "조항 분리 중 오류가 발생했습니다."
+    );
+
+  }
+
 }
 
-  function splitClausesByPeriod(text) {
-    const cleaned = text
-      .replace(/\r/g, "")
-      .replace(/\n+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-      const removedNumber = cleaned.replace(
-    /\b\d+\.\s*/g,
-    ""
-  ); 
-
-    return removedNumber
-      .split(/(?<=\.)/)
-      .map(v => v.trim())
-      .filter(v => v.length > 0)
-      .map(v => v.endsWith(".") ? v : v + ".");
-  }
+  
 
   async function sendClausesToServer(clauses) {
     currentClauses = clauses;
@@ -817,6 +851,8 @@ updateResultCard(
 
   const errorData =
     await response.json();
+
+    
 
   throw new Error(
     getErrorMessage(
