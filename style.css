@@ -431,3 +431,17 @@ body {
 .result-card{
   cursor:pointer;
 }
+.retry-btn {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #ef4444;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.retry-btn:hover {
+  background: #dc2626;
+}
