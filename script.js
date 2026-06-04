@@ -481,7 +481,7 @@ updateResultCard(
       `result-card-${item.id}`;
 
     div.className =
-      "result-card unknown";
+  "result-card pending";
 
     div.innerHTML = `
   <span
