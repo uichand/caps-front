@@ -445,3 +445,35 @@ body {
 .retry-btn:hover {
   background: #dc2626;
 }
+
+.side-panel .card {
+  background: #f0f8ff;
+  padding: 28px;
+  border-radius: 16px;
+}
+
+.side-panel .card-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.side-panel .card p {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 2.2;
+  color: #334155;
+  margin: 0;
+}
+
+#totalCount,
+#safeCount,
+#dangerCount,
+#unknownCount,
+#errorCount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
