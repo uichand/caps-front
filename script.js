@@ -284,7 +284,25 @@ errorCount = 0;
 
 countedClauses.clear();
 
+
+console.log(
+  "update",
+  remainCount,
+  safeCount,
+  dangerCount,
+  unknownCount,
+  errorCount
+);
+
 updateSummary();
+
+console.log(
+  remainCount,
+  safeCount,
+  dangerCount,
+  unknownCount,
+  errorCount
+);
 
     if (!clauses || clauses.length === 0) {
       alert("분석할 조항이 없습니다.");
