@@ -1,6 +1,7 @@
   let selectedImage = null;
   let selectedLawdCode = "";
-  let selectedAddressPayload = null; // image.png 스키마에 맞춰 백엔드로 보낼 주소 상세값 저장
+  let selectedAddressPayload = null; 
+  let currentClauses = [];
 
   const BASE_API_URL =
     "https://stockinged-lakita-dowable.ngrok-free.dev";
@@ -13,6 +14,46 @@
 
   const JEONSE_API_URL =
     BASE_API_URL + "/api/v1/analyze/property-risk/ai";
+
+    const REQUEST_TIMEOUT = 120000;
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, REQUEST_TIMEOUT);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error.name === "AbortError") {
+      throw new Error("요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.");
+    }
+
+    throw error;
+  }
+}
+
+function getErrorMessage(data, fallback) {
+  if (data && data.detail) {
+    if (typeof data.detail === "string") {
+      return data.detail;
+    }
+
+    return JSON.stringify(data.detail);
+  }
+
+  return fallback || "오류가 발생했습니다.";
+}
     
   function showSection(type) {
     [
@@ -69,19 +110,20 @@
     const statusMsg = document.getElementById("statusMsg");
 
     popup.style.display = "flex";
-    statusMsg.innerText = "서버에서 OCR 추출 중...";
+    statusMsg.innerText = "서버에서 이미지 추출 중...";
 
     const formData = new FormData();
     formData.append("image", selectedImage);
 
     try {
-      const response = await fetch(OCR_API_URL, {
+      const response = await fetchWithTimeout(
+  OCR_API_URL, {
         method: "POST",
         body: formData
       });
 
       if (!response.ok) {
-        throw new Error("OCR 서버 응답 오류");
+        throw new Error("이미지 분석 중 오류가 발생했습니다.");
       }
 
       const data = await response.json();
@@ -91,7 +133,7 @@
       if (Array.isArray(data)) {
         clauses = data;
       } else if (Array.isArray(data.clauses)) {
-        clauses = splitClausesByPeriod(data.clauses.join(" "));
+        clauses = data.clauses;
       } else if (typeof data.text === "string") {
         clauses = splitClausesByPeriod(data.text);
       } else if (typeof data.ocr_text === "string") {
@@ -123,27 +165,35 @@
 
     } catch (error) {
       console.error(error);
-      alert("OCR 서버 통신 오류입니다.");
+      alert("이미지 분석 중 오류가 발생했습니다.");
     } finally {
       popup.style.display = "none";
     }
   }
 
   async function analyzeDirectText() {
-    const text = document.getElementById("directText").value.trim();
 
-    if (!text) {
-      alert("분석할 특약사항을 입력해주세요.");
-      return;
-    }
+  const text =
+    document.getElementById("directText")
+      .value
+      .trim();
 
-    const clauses = splitClausesByPeriod(text).map((content, index) => ({
-      id: index + 1,
-      clause: content
-    }));
-
-    await sendClausesToServer(clauses);
+  if (!text) {
+    alert("분석할 특약사항을 입력해주세요.");
+    return;
   }
+
+  const clauses =
+    splitClausesByPeriod(text)
+      .map((content, index) => ({
+        id: index + 1,
+        clause: content
+      }));
+
+  await sendClausesToServer(
+    clauses
+  );
+}
 
   function splitClausesByPeriod(text) {
     const cleaned = text
@@ -165,6 +215,7 @@
   }
 
   async function sendClausesToServer(clauses) {
+    currentClauses = clauses;
 
     if (!clauses || clauses.length === 0) {
       alert("분석할 조항이 없습니다.");
@@ -195,7 +246,7 @@
       try {
 
         const response =
-          await fetch(
+          await fetchWithTimeout(
             CLAUSE_ANALYZE_API_URL,
             {
               method: "POST",
@@ -212,100 +263,41 @@
           );
 
         const result =
-          await response.json();
+        
+  await response.json();
 
-        const converted =
-          convertServerResult(
-            result,
-            item
-          );
+if (result.detail) {
 
-        updateResultCard(
-          converted
-        );
+  updateResultCard({
+    clause_no: item.id,
+    content: item.clause,
+    risk: "error",
+    reason: getErrorMessage(
+  result,
+  "분석 중 오류 발생"
+),
+    extra_statutes: []
+  });
 
-      } catch (error) {
+  return;
+}
 
-        updateResultCard({
-          clause_no: item.id,
-          content: item.clause,
-          risk: "unknown",
-          reason:
-            "분석 중 오류 발생",
-          extra_statutes: []
-        });
+const converted =
+  convertServerResult(
+    result,
+    item
+  );
 
-      }
-
-    });
-
-  }
-  async function sendClausesToServer(clauses) {
-
-    if (!clauses || clauses.length === 0) {
-      alert("분석할 조항이 없습니다.");
-      return;
-    }
-
-    document.getElementById("contractSection").style.display =
-      "none";
-
-    document.getElementById("resultSection").style.display =
-      "block";
-
-    document.getElementById("popup").style.display =
-      "none";
-
-    const finalResultList =
-      document.getElementById("finalResultList");
-
-    finalResultList.innerHTML =
-      "<h2>⚖️ 조항별 위험도 리포트</h2>";
-
-    clauses.forEach(item => {
-      createPendingResultCard(item);
-    });
-
-    clauses.forEach(async item => {
-
-      try {
-
-        const response =
-          await fetch(
-            CLAUSE_ANALYZE_API_URL,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json"
-              },
-              body: JSON.stringify({
-                id: item.id,
-                special_clause:
-                  item.clause
-              })
-            }
-          );
-
-        const result =
-          await response.json();
-
-        const converted =
-          convertServerResult(
-            result,
-            item
-          );
-
-        updateResultCard(
-          converted
-        );
+updateResultCard(
+  converted
+);
 
       } catch (error) {
 
         updateResultCard({
           clause_no: item.id,
           content: item.clause,
-          risk: "unknown",
+          risk: "error",
           reason:
             "분석 중 오류 발생",
           extra_statutes: []
@@ -406,26 +398,26 @@
       "result-card unknown";
 
     div.innerHTML = `
-      <span
-        class="risk-badge"
-        style="
-          background:#e5e7eb;
-          color:#374151;
-        "
-      >
-        분석중
-      </span>
+  <span
+    class="risk-badge"
+    style="
+      background:#e5e7eb;
+      color:#374151;
+    "
+  >
+    분석중
+  </span>
 
-      <strong>
-        ${item.id}번 조항
-      </strong>
+  <strong>
+    ${item.id}번 조항
+  </strong>
 
-      <p>
-        ${escapeHtml(
-          item.clause || ""
-        )}
-      </p>
-    `;
+  <p>
+    ${escapeHtml(
+      item.clause || ""
+    )}
+  </p>
+`;
 
     finalResultList
       .appendChild(div);
@@ -442,14 +434,14 @@
 
     if (!div) return;
 
-   let label =
-  "판단불가";
+    let label =
+      "판단불가";
 
-let badgeBg =
-  "#ede9fe";
+    let badgeBg =
+      "#ede9fe";
 
-let badgeColor =
-  "#6d28d9";
+    let badgeColor =
+      "#6d28d9";
 
     if (
       result.risk ===
@@ -481,31 +473,59 @@ let badgeColor =
         "#991b1b";
     }
 
+    if (
+  result.risk ===
+  "error"
+) {
+
+  label =
+    "오류";
+
+  badgeBg =
+    "#fef3c7";
+
+  badgeColor =
+    "#92400e";
+}
+
     div.className =
       `result-card ${result.risk}`;
 
-    div.innerHTML = `
-      <span
-        class="risk-badge"
-        style="
-          background:${badgeBg};
-          color:${badgeColor};
-        "
+   div.innerHTML = `
+  <span
+    class="risk-badge"
+    style="
+      background:${badgeBg};
+      color:${badgeColor};
+    "
+  >
+    ${label}
+  </span>
+
+  <strong>
+    ${result.clause_no}
+    번 조항
+  </strong>
+
+  <p>
+    ${escapeHtml(
+      result.content || ""
+    )}
+  </p>
+
+  ${
+    result.risk === "error"
+      ? `
+      <button
+        class="retry-btn"
+       onclick="retryClauseAnalyze(event, ${result.clause_no}, this)"
       >
-        ${label}
-      </span>
-
-      <strong>
-        ${result.clause_no}
-        번 조항
-      </strong>
-
-      <p>
-        ${escapeHtml(
-          result.content || ""
-        )}
-      </p>
-    `;
+        다시 분석
+      </button>
+      `
+      : ""
+  }
+`;
 
     div.onclick =
       () => {
@@ -540,9 +560,10 @@ let badgeColor =
     }
 
     if (risk === "unknown") {
-      label = "판단불가";
-      badgeBg = "#e5e7eb";
-      badgeColor = "#374151";
+     unknownCount++;
+     label = "판단불가";
+     badgeBg = "#ede9fe";
+     badgeColor = "#6d28d9";
     }
 
     div.innerHTML = `
@@ -646,7 +667,7 @@ let badgeColor =
       .replace(/'/g, "&#039;");
   }
 
-  // ===== 깡통전세 기능은 기존 코드 유지 =====
+  
 
   function execDaumPostcode() {
     new daum.Postcode({
@@ -660,36 +681,36 @@ let badgeColor =
           selectedLawdCode = data.bcode.substring(0, 5);
         }
 
-        selectedAddressPayload = createAddressPayload(data); // 카카오 주소 결과를 백엔드 전송 형식으로 변환
+        selectedAddressPayload = createAddressPayload(data); 
       }
     }).open();
   }
 
-  function createAddressPayload(data) { // image.png에 나온 주소 관련 필드 생성
-    const jibun = extractJibun(data.jibunAddress || data.autoJibunAddress || ""); // 전체 지번 추출
-    const [mainJibun, subJibun = "0"] = jibun.split("-"); // 본번/부번 분리
+  function createAddressPayload(data) { 
+    const jibun = extractJibun(data.jibunAddress || data.autoJibunAddress || ""); 
+    const [mainJibun, subJibun = "0"] = jibun.split("-"); 
 
     return {
-      dong_name: data.bname || "", // 법정동 이름
-      legal_dong_code: data.bcode || "", // 법정동코드 10자리
-      jibun: jibun, // 지번
-      main_jibun: mainJibun || "", // 지번 본번
-      sub_jibun: subJibun || "0", // 지번 부번, 없으면 0
-      mountain_yn: isMountainJibun(data.jibunAddress || data.autoJibunAddress || "") ? "Y" : "N" // 산 여부
+      dong_name: data.bname || "", 
+      legal_dong_code: data.bcode || "", 
+      jibun: jibun, 
+      main_jibun: mainJibun || "", 
+      sub_jibun: subJibun || "0", 
+      mountain_yn: isMountainJibun(data.jibunAddress || data.autoJibunAddress || "") ? "Y" : "N" 
     };
   }
 
-  function extractJibun(jibunAddress) { // 지번 주소에서 532 또는 532-1 형태만 추출
+  function extractJibun(jibunAddress) { 
     const match = jibunAddress.match(/(?:산\s*)?(\d{1,4}(?:-\d{1,4})?)/);
 
     return match ? match[1] : "";
   }
 
-  function isMountainJibun(jibunAddress) { // 지번 앞에 산이 있으면 Y로 보내기 위한 판별
+  function isMountainJibun(jibunAddress) { 
     return /(?:^|\s)산\s*\d/.test(jibunAddress);
   }
 
-  function promptNumberValue(label) { // 동 번호/호 번호를 숫자 형식으로 입력받기
+  function promptNumberValue(label) { 
     const value = prompt(`${label}를 숫자만 입력해주세요. 예: 101`);
 
     if (value === null) {
@@ -733,7 +754,7 @@ let badgeColor =
       return;
     }
 
-    if (!selectedAddressPayload || !selectedAddressPayload.legal_dong_code) { // 주소 상세값이 없으면 전송 중단
+    if (!selectedAddressPayload || !selectedAddressPayload.legal_dong_code) { 
       alert("주소 찾기로 주소를 다시 선택해주세요.");
       return;
     }
@@ -758,14 +779,15 @@ let badgeColor =
     const resultDetails = document.getElementById("resultDetails");
 
     resultBox.style.display = "block";
-    resultBox.className = "unknown";
+    
+    applyJeonseTotalRiskStyle(resultBox, "unknown");
 
     resultMessage.innerText = "국토부 실거래가 분석 중...";
     resultDetails.innerText = "";
 
     try {
-      const response = await fetch(
-    JEONSE_API_URL,
+      const response = await fetchWithTimeout(
+  JEONSE_API_URL,
         {
           method: "POST",
           headers: {
@@ -777,13 +799,13 @@ let badgeColor =
             deposit: deposit,
             area: area,
             building_type: buildingType,
-            dong_num: dongNum, // 동 번호
-            ho_num: hoNum, // 호 번호
-            dong_name: selectedAddressPayload.dong_name, // 법정동 이름
-            legal_dong_code: selectedAddressPayload.legal_dong_code, // 법정동코드
-            jibun: selectedAddressPayload.jibun, // 지번
-            main_jibun: selectedAddressPayload.main_jibun, // 지번 본번
-            sub_jibun: selectedAddressPayload.sub_jibun, // 지번 부번
+            dong_num: dongNum, 
+            ho_num: hoNum, 
+            dong_name: selectedAddressPayload.dong_name, 
+            legal_dong_code: selectedAddressPayload.legal_dong_code, 
+            jibun: selectedAddressPayload.jibun, 
+            main_jibun: selectedAddressPayload.main_jibun, 
+            sub_jibun: selectedAddressPayload.sub_jibun, 
             mountain_yn: selectedAddressPayload.mountain_yn,
             prior_bonds: priorBonds
             
@@ -792,9 +814,17 @@ let badgeColor =
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
-      }
+
+  const errorData =
+    await response.json();
+
+  throw new Error(
+    getErrorMessage(
+      errorData,
+      "분석 중 오류 발생"
+    )
+  );
+}
 
       const data = await response.json();
 
@@ -803,30 +833,281 @@ const aiOpinion = Array.isArray(data.ai_opinion)
   ? data.ai_opinion.join("\n")
   : "";
 
+
+applyJeonseTotalRiskStyle(resultBox, riskLevel);
+
 if (riskLevel === "safe") {
-  resultBox.className = "safe";
 
   resultMessage.innerHTML =
     "안전: 깡통전세 위험이 낮습니다.<br>그래도 등기부등본 확인을 권장합니다.";
-} else {
-  resultBox.className = "danger";
+
+} else if (riskLevel === "warning") {
 
   resultMessage.innerHTML =
-    "주의: 깡통전세 위험 가능성이 있습니다.<br>등기부등본과 선순위채권 확인이 필요합니다.";
+    "주의: 추가 확인이 필요합니다.<br>등기부등본과 선순위채권을 확인해주세요.";
+
+} else if (riskLevel === "danger") {
+
+  resultMessage.innerHTML =
+    "위험: 깡통전세 위험이 높습니다.<br>계약 전 반드시 추가 확인이 필요합니다.";
+
+} else {
+
+  resultMessage.innerHTML =
+    "판단 불가: 거래 데이터가 부족하거나 분석이 어렵습니다.";
+
 }
 
-resultDetails.innerText =
-  `종합 위험도: ${riskLevel || "unknown"}\n\n${aiOpinion}`;
+
+renderJeonseResultDetails(data, riskLevel, aiOpinion);
     } catch (error) {
-      console.error(error);
+  console.error(error);
 
-      resultBox.className = "danger";
+  applyJeonseTotalRiskStyle(
+    resultBox,
+    "danger"
+  );
 
-      resultMessage.innerText = "서버 통신 오류";
+  resultMessage.innerText =
+    "오류 발생";
 
-      resultDetails.innerText =
-        "FastAPI 서버가 실행 중인지 확인해주세요.";
+  resultDetails.innerText =
+    error.message ||
+    "알 수 없는 오류가 발생했습니다.";
+}
+  }
+  
+  function applyJeonseTotalRiskStyle(resultBox, riskLevel) {
+    const style = getJeonseTotalRiskStyle(riskLevel);
+
+    resultBox.className = riskLevel || "unknown";
+    resultBox.style.background = style.background;
+    resultBox.style.color = style.color;
+    resultBox.style.border = `1px solid ${style.border}`;
+  }
+
+  
+  function getJeonseTotalRiskStyle(riskLevel) {
+    const styles = {
+      safe: {
+        background: "#dcfce7",
+        color: "#166534",
+        border: "#bbf7d0"
+      },
+      danger: {
+        background: "#fee2e2",
+        color: "#991b1b",
+        border: "#fecaca"
+      },
+      warning: {
+        background: "#ffedd5",
+        color: "#9a3412",
+        border: "#fed7aa"
+      },
+      unknown: {
+        background: "#e5e7eb",
+        color: "#374151",
+        border: "#d1d5db"
+      }
+    };
+
+    return styles[riskLevel] || styles.unknown;
+  }
+
+ 
+  function renderJeonseResultDetails(data, riskLevel, aiOpinion) {
+    const resultBox = document.getElementById("resultBox");
+    const resultDetails = document.getElementById("resultDetails");
+    const totalLabel = getJeonseRiskLabel("total", riskLevel);
+    const opinionHtml = aiOpinion
+      ? escapeHtml(aiOpinion).replace(/\n/g, "<br>")
+      : "\u0041\u0049 \uC758\uACAC\uC774 \uC81C\uACF5\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.";
+
+    if (resultBox) {
+      applyJeonseTotalRiskStyle(resultBox, riskLevel);
     }
+
+    resultDetails.innerHTML = `
+      <div>\uC885\uD569 \uC704\uD5D8\uB3C4: ${escapeHtml(totalLabel)}</div>
+      <br>
+      <div>${opinionHtml}</div>
+    `;
+
+    setupJeonseDetailView(data);
+  }
+
+ 
+  function setupJeonseDetailView(data) {
+    const detailView = document.getElementById("jeonseDetailView");
+    const toggleButton = document.getElementById("jeonseDetailToggleButton");
+
+    if (detailView) {
+      detailView.style.display = "none";
+      detailView.innerHTML = createJeonseDetailHtml(data);
+    }
+
+    if (toggleButton) {
+      toggleButton.onclick = toggleJeonseDetailView;
+      toggleButton.innerText = "\uC0C1\uC138\uBCF4\uAE30";
+    }
+  }
+
+  
+  function toggleJeonseDetailView() {
+    const detailView = document.getElementById("jeonseDetailView");
+    const toggleButton = document.getElementById("jeonseDetailToggleButton");
+
+    if (!detailView) return;
+
+    const isHidden = detailView.style.display === "none";
+    detailView.style.display = isHidden ? "block" : "none";
+
+    if (toggleButton) {
+      toggleButton.innerText = isHidden
+        ? "\uC0C1\uC138\uB2EB\uAE30"
+        : "\uC0C1\uC138\uBCF4\uAE30";
+    }
+  }
+
+  
+  function createJeonseDetailHtml(data) {
+    const rows = [
+      {
+        title: "\u0048\u0055\u0047 \uC804\uC138\uBCF4\uC99D\uBCF4\uD5D8",
+        type: "hug",
+        analysis: data.hug_analysis
+      },
+      {
+        title: "\uAE61\uD1B5\uC804\uC138 \uC704\uD5D8",
+        type: "market",
+        analysis: data.market_analysis
+      },
+      {
+        title: "\uC2DC\uC138 \uC801\uC815\uC131",
+        type: "rent",
+        analysis: data.rent_analysis
+      }
+    ];
+
+    return rows
+      .map(item => {
+        const riskLevel = item.analysis?.risk_level || "unknown";
+        const riskLabel = getJeonseRiskLabel(item.type, riskLevel);
+        const opinions = Array.isArray(item.analysis?.opinion)
+          ? item.analysis.opinion
+          : [];
+        const opinionHtml = opinions.length > 0
+          ? `<ul style="margin:8px 0 0 18px; padding:0;">${opinions
+              .map(opinion => `<li>${escapeHtml(opinion)}</li>`)
+              .join("")}</ul>`
+          : `<p style="margin:8px 0 0;">\uD310\uB2E8 \uADFC\uAC70\uAC00 \uC81C\uACF5\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.</p>`;
+
+        return `
+          <div style="margin-top:12px;">
+            <strong>${escapeHtml(item.title)}:</strong>
+            ${createJeonseRiskBadge(item.type, riskLevel, riskLabel)}
+            ${opinionHtml}
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  
+  function createJeonseRiskBadge(type, riskLevel, label) {
+    const style = getJeonseRiskBadgeStyle(type, riskLevel);
+
+    return `
+      <span
+        style="
+          display:inline-block;
+          margin-left:6px;
+          padding:3px 8px;
+          border-radius:999px;
+          font-size:13px;
+          font-weight:700;
+          background:${style.background};
+          color:${style.color};
+          border:1px solid ${style.border};
+          vertical-align:middle;
+        "
+      >
+        ${escapeHtml(label)}
+      </span>
+    `;
+  }
+
+  
+  function getJeonseRiskBadgeStyle(type, riskLevel) {
+    if (
+      riskLevel === "safe" ||
+      riskLevel === "fair" ||
+      riskLevel === "underpriced"
+    ) {
+      return {
+        background: "#dcfce7",
+        color: "#166534",
+        border: "#86efac"
+      };
+    }
+
+    if (
+      riskLevel === "danger"
+    ) {
+      return {
+        background: "#fee2e2",
+        color: "#991b1b",
+        border: "#fecaca"
+      };
+    }
+
+    if (
+      riskLevel === "warning" ||
+      riskLevel === "overpriced"
+    ) {
+      return {
+        background: "#fef3c7",
+        color: "#92400e",
+        border: "#fde68a"
+      };
+    }
+
+    return {
+      background: "#e5e7eb",
+      color: "#374151",
+      border: "#d1d5db"
+    };
+  }
+
+ 
+  function getJeonseRiskLabel(type, riskLevel) {
+    const labels = {
+      hug: {
+        safe: "\uBCF4\uD5D8\uAC00\uC785\uAC00\uB2A5",
+        danger: "\uBCF4\uD5D8\uAC00\uC785\uBD88\uAC00",
+        unknown: "\uD310\uB2E8\uBD88\uAC00"
+      },
+      market: {
+        safe: "\uC548\uC804",
+        warning: "\uC8FC\uC758",
+        danger: "\uC704\uD5D8",
+        unknown: "\uD310\uB2E8\uBD88\uAC00"
+      },
+      rent: {
+        underpriced: "\uC2DC\uC138\uBCF4\uB2E4\uB0AE\uC74C",
+        fair: "\uC2DC\uC138\uB300\uBE44 \uC801\uC808",
+        overpriced: "\uC2DC\uC138\uB300\uBE44\uB192\uC74C",
+        unknown: "\uD310\uB2E8\uBD88\uAC00"
+      },
+      total: {
+        safe: "\uC548\uC804",
+        warning: "\uC8FC\uC758",
+        danger: "\uC704\uD5D8",
+        unknown: "\uD310\uB2E8\uBD88\uAC00"
+      }
+    };
+
+    return labels[type]?.[riskLevel] || labels[type]?.unknown || "\uD310\uB2E8\uBD88\uAC00";
   }
 
   function formatNumber(input) {
@@ -864,3 +1145,91 @@ resultDetails.innerText =
     document.getElementById("detailModal").style.display =
       "none";
   } 
+
+ async function retryClauseAnalyze(
+  event,
+  clauseNo,
+  button
+) {
+
+  event.stopPropagation();
+
+  button.disabled = true;
+  button.innerText = "재분석 중...";
+
+  const target =
+    currentClauses.find(
+      v => v.id === clauseNo
+    );
+
+  if (!target) {
+
+    button.disabled = false;
+    button.innerText = "다시 분석";
+
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetchWithTimeout(
+        CLAUSE_ANALYZE_API_URL,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body: JSON.stringify({
+            id: target.id,
+            special_clause:
+              target.clause
+          })
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if (result.detail) {
+
+      updateResultCard({
+        clause_no: target.id,
+        content: target.clause,
+        risk: "error",
+        reason: getErrorMessage(
+          result,
+          "분석 중 오류 발생"
+        ),
+        extra_statutes: []
+      });
+
+      return;
+    }
+
+    const converted =
+      convertServerResult(
+        result,
+        target
+      );
+
+    updateResultCard(
+      converted
+    );
+
+  } catch (error) {
+
+    updateResultCard({
+      clause_no: target.id,
+      content: target.clause,
+      risk: "error",
+      reason:
+        error.message ||
+        "분석 중 오류 발생",
+      extra_statutes: []
+    });
+
+  }
+
+}
