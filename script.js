@@ -732,7 +732,7 @@ updateResultCard(
 
     const deposit = parseInt(
       document.getElementById("deposit").value.replace(/,/g, "")
-    );
+    )*10000;
 
     const priorBondsValue =
     document.getElementById("priorBonds")?.value || "";
