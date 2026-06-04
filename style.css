@@ -495,3 +495,13 @@ body {
   font-weight: 800;
   color: #0f172a;
 }
+
+.result-card.pending {
+  background: #f8fafc;
+  border-left: 6px solid #94a3b8;
+}
+
+.result-card.pending .risk-badge {
+  background: #e2e8f0;
+  color: #475569;
+}
