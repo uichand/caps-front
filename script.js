@@ -604,6 +604,20 @@ updateResultCard(
   badgeColor =
     "#92400e";
 }
+if (
+  result.risk ===
+  "unknown"
+) {
+
+  label =
+    "판단불가";
+
+  badgeBg =
+    "#ede9fe";
+
+  badgeColor =
+    "#6d28d9";
+}
 
     div.className =
       `result-card ${result.risk}`;
