@@ -203,6 +203,24 @@ body {
   border-left: 6px solid #ef4444;
 }
 
+.result-card.safe {
+  background: #dcfce7;
+}
+
+.result-card.danger {
+  background: #fee2e2;
+}
+
+.result-card.error {
+  background: #fffbeb;
+  border-left: 6px solid #f59e0b;
+}
+
+.result-card.unknown {
+  background: #f5f3ff;
+  border-left: 6px solid #8b5cf6;
+}
+
 .risk-badge {
   display: inline-block;
   padding: 4px 10px;
