@@ -946,10 +946,18 @@ renderJeonseResultDetails(data, riskLevel, aiOpinion);
       detailView.innerHTML = createJeonseDetailHtml(data);
     }
 
-    if (toggleButton) {
-      toggleButton.onclick = toggleJeonseDetailView;
-      toggleButton.innerText = "\uC0C1\uC138\uBCF4\uAE30";
-    }
+   if (toggleButton) {
+
+  toggleButton.style.display =
+    "block";
+
+  toggleButton.onclick =
+    toggleJeonseDetailView;
+
+  toggleButton.innerText =
+    "상세보기";
+}
+  window.scrollTo(0, 0);
   }
 
   
@@ -1231,5 +1239,45 @@ renderJeonseResultDetails(data, riskLevel, aiOpinion);
     });
 
   }
+
+}
+
+function resetJeonseForm() {
+
+  document.getElementById("buildingType").value =
+    "아파트";
+
+  document.getElementById("area").value = "";
+  document.getElementById("deposit").value = "";
+  document.getElementById("address").value = "";
+  document.getElementById("dongNum").value = "";
+  document.getElementById("hoNum").value = "";
+  document.getElementById("priorBonds").value = "";
+
+  selectedLawdCode = "";
+  selectedAddressPayload = null;
+
+  document.getElementById("resultBox").style.display =
+    "none";
+
+  const detailView =
+    document.getElementById("jeonseDetailView");
+
+  if (detailView) {
+    detailView.style.display = "none";
+    detailView.innerHTML = "";
+  }
+
+  const toggleButton =
+    document.getElementById("jeonseDetailToggleButton");
+
+  if (toggleButton) {
+
+  toggleButton.style.display =
+    "none";
+
+  toggleButton.innerText =
+    "상세보기";
+}
 
 }
