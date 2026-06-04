@@ -2,6 +2,13 @@
   let selectedLawdCode = "";
   let selectedAddressPayload = null; 
   let currentClauses = [];
+  let remainCount = 0;
+let safeCount = 0;
+let dangerCount = 0;
+let unknownCount = 0;
+let errorCount = 0;
+
+const countedClauses = new Set();
 
   const BASE_API_URL =
     "https://stockinged-lakita-dowable.ngrok-free.dev";
@@ -53,6 +60,23 @@ function getErrorMessage(data, fallback) {
   }
 
   return fallback || "오류가 발생했습니다.";
+}
+function updateSummary() {
+
+  document.getElementById("totalCount").innerText =
+    remainCount;
+
+  document.getElementById("safeCount").innerText =
+    safeCount;
+
+  document.getElementById("dangerCount").innerText =
+    dangerCount;
+
+  document.getElementById("unknownCount").innerText =
+    unknownCount;
+
+  document.getElementById("errorCount").innerText =
+    errorCount;
 }
     
   function showSection(type) {
@@ -250,6 +274,17 @@ function getErrorMessage(data, fallback) {
 
   async function sendClausesToServer(clauses) {
     currentClauses = clauses;
+
+    remainCount = clauses.length;
+
+safeCount = 0;
+dangerCount = 0;
+unknownCount = 0;
+errorCount = 0;
+
+countedClauses.clear();
+
+updateSummary();
 
     if (!clauses || clauses.length === 0) {
       alert("분석할 조항이 없습니다.");
@@ -458,10 +493,41 @@ updateResultCard(
 
   }
   function updateResultCard(
-    result
+  result
+) {
+
+  if (
+    !countedClauses.has(
+      result.clause_no
+    )
   ) {
 
-    const div =
+    countedClauses.add(
+      result.clause_no
+    );
+
+    remainCount--;
+
+    if (result.risk === "safe") {
+      safeCount++;
+    }
+
+    if (result.risk === "danger") {
+      dangerCount++;
+    }
+
+    if (result.risk === "unknown") {
+      unknownCount++;
+    }
+
+    if (result.risk === "error") {
+      errorCount++;
+    }
+
+    updateSummary();
+  }
+
+  const div =
       document.getElementById(
         `result-card-${result.clause_no}`
       );
