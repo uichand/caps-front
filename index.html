@@ -17,12 +17,7 @@
   <button onclick="showSection('jeonse')">🏠 깡통전세 진단</button>
   <button onclick="location.reload()">초기 화면</button>
 
-  <button
-  class="btn-secondary"
-  onclick="resetJeonseForm()"
->
-  깡통전세 초기화
-</button>
+
 </div>
 
 <div class="wrap">
@@ -243,7 +238,7 @@
   <input
     type="text"
     id="priorBonds"
-    placeholder="없으면0, 모르면 비워두세요"
+    placeholder="없으면 0, 모르면 비워두세요."
     oninput="formatNumber(this)"
   >
 </div>
@@ -257,10 +252,33 @@
       위험도 분석
     </button>
 
+    
+
     <div id="resultBox">
       <div id="resultMessage"></div>
       <div id="resultDetails"></div>
     </div>
+    <button
+  id="jeonseDetailToggleButton"
+  class="btn-secondary"
+  style="display:none; margin-top:10px;"
+>
+  상세보기
+</button>
+
+<button
+  class="btn-secondary"
+  onclick="resetJeonseForm()"
+>
+  초기 화면
+</button>
+
+<div
+  id="jeonseDetailView"
+  class="card"
+  style="display:none; margin-top:10px;"
+>
+</div>
 
   </div>
 
