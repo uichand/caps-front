@@ -219,21 +219,20 @@ function updateSummary() {
   try {
 
     const response =
-      await fetchWithTimeout(
-        BASE_API_URL +
-        "/api/v1/extract/clause",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-          body: JSON.stringify({
-            text: text
-          })
-        }
-      );
-
+  await fetchWithTimeout(
+    BASE_API_URL +
+    "/api/v1/extract/clause",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
+        special_clause: text
+      })
+    }
+  );
     const data =
       await response.json();
 
