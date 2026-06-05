@@ -1286,6 +1286,60 @@ renderJeonseResultDetails(data, riskLevel, aiOpinion);
     document.getElementById("detailModal").style.display =
       "none";
   } 
+  window.addEventListener("DOMContentLoaded", () => {
+
+  const cards =
+    document.querySelectorAll(
+      "#finalResultList .result-card"
+    );
+
+  const demoData = [
+
+    {
+      clause_no: 1,
+      reason:
+        "임차인에게 일방적으로 불리한 계약 해지 권한이 포함되어 있습니다.",
+      extra_statutes: [
+        "주택임대차보호법 제3조"
+      ]
+    },
+
+    {
+      clause_no: 2,
+      reason:
+        "일반적인 임대차 계약 내용으로 판단됩니다.",
+      extra_statutes: [
+        "주택임대차보호법 제3조"
+      ]
+    },
+
+    {
+      clause_no: 3,
+      reason:
+        "표현이 모호하여 추가 검토가 필요합니다.",
+      extra_statutes: []
+    },
+
+    {
+      clause_no: 4,
+      reason:
+        "서버 응답 오류가 발생했습니다. 다시 시도해주세요.",
+      extra_statutes: []
+    }
+
+  ];
+
+  cards.forEach((card, index) => {
+
+    card.onclick = () => {
+      openDetailModal(
+        demoData[index]
+      );
+    };
+
+  });
+
+});
 
  async function retryClauseAnalyze(
   event,
@@ -1414,3 +1468,4 @@ function resetJeonseForm() {
 }
 
 }
+
