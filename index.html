@@ -107,33 +107,77 @@
       <h2>조항별 위험도 리포트</h2>
 
       <div class="result-card danger">
-        <span class="risk-badge danger-badge">위험</span>
+  <span class="risk-badge danger-badge">위험</span>
 
-        <strong>1번 조항</strong>
+  <strong>1번 조항</strong>
 
-        <p>
-          임대인은 필요 시 계약 기간 중 언제든지 계약을 해지할 수 있다.
-        </p>
+  <p>
+    임대인은 계약 기간 중 언제든지 계약을 해지할 수 있다.
+  </p>
 
-        <div class="reason-box">
-          임차인에게 일방적으로 불리한 계약 해지 권한이 포함되어 있습니다.
-        </div>
-      </div>
+  <div class="reason-box">
+    임차인에게 일방적으로 불리한 계약 해지 권한이 포함되어 있습니다.
+  </div>
+</div>
 
-      <div class="result-card warning">
-        <span class="risk-badge warning-badge">주의</span>
+<div class="result-card safe">
+  <span class="risk-badge"
+        style="background:#dcfce7;color:#166534;">
+    안전
+  </span>
 
-        <strong>2번 조항</strong>
+  <strong>2번 조항</strong>
 
-        <p>
-          시설물 파손 시 책임은 상호 협의에 따라 정한다.
-        </p>
+  <p>
+    임대인은 계약 종료 시 보증금을 반환한다.
+  </p>
 
-        <div class="reason-box">
-          책임 범위가 명확하지 않아 추후 분쟁 가능성이 있습니다.
-        </div>
-      </div>
+  <div class="reason-box">
+    일반적인 임대차 계약 내용으로 판단됩니다.
+  </div>
+</div>
 
+<div class="result-card unknown">
+  <span class="risk-badge"
+        style="background:#ede9fe;color:#6d28d9;">
+    판단불가
+  </span>
+
+  <strong>3번 조항</strong>
+
+  <p>
+    시설물 관리 책임은 상호 협의에 따라 정한다.
+  </p>
+
+  <div class="reason-box">
+    표현이 모호하여 추가 검토가 필요합니다.
+  </div>
+</div>
+
+<div class="result-card error">
+  <span class="risk-badge"
+        style="background:#fef3c7;color:#92400e;">
+    오류
+  </span>
+
+  <strong>4번 조항</strong>
+
+  <p>
+    분석 서버와 통신 중 오류가 발생했습니다.
+  </p>
+
+  <div class="reason-box">
+    서버 응답을 받지 못했습니다.
+  </div>
+
+  <button
+    class="retry-btn"
+    onclick="event.stopPropagation();"
+  >
+    다시 분석
+  </button>
+
+</div>
     </div>
 
     <div class="side-panel">
@@ -146,11 +190,11 @@
       분석 결과 요약
     </div>
 
-    <p>총 조항 : <span id="totalCount">0</span>개</p>
-    <p>안전 : <span id="safeCount">0</span>개</p>
-    <p>위험 : <span id="dangerCount">0</span>개</p>
-    <p>판단불가 : <span id="unknownCount">0</span>개</p>
-    <p>오류 : <span id="errorCount">0</span>개</p>
+    <p>총 조항 : <span id="totalCount">4</span>개</p>
+    <p>안전 : <span id="safeCount">1</span>개</p>
+    <p>위험 : <span id="dangerCount">1</span>개</p>
+    <p>판단불가 : <span id="unknownCount">1</span>개</p>
+    <p>오류 : <span id="errorCount">1</span>개</p>
 
   </div>
 
@@ -255,7 +299,7 @@
     </div>
 
     <div class="notice-box">
-  AI 참고용 분석 결과이며 법적 효력이 없습니다.<br>
+  AI 참고용 분석 결과이며 법적 효력이 없습니다.
 실제 계약 전 관련 서류를 반드시 추가 확인하시기 바랍니다.
 </div>
 
