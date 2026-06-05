@@ -505,3 +505,13 @@ body {
   background: #cbd5e1;
   color: #334155;
 }
+
+  .notice-box {
+  margin-top: 15px;
+  padding: 8px 12px;
+  background: #fff7ed;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #9a3412;
+}
