@@ -53,6 +53,11 @@
         이미지를 업로드해주세요.
       </div>
 
+      <div class="notice-box">
+      ⚠️ 개인정보는 가린 후 업로드하세요.<br>
+※ AI 참고용 분석 결과이며 법적 효력이 없습니다.
+      </div>
+
       <button
         class="btn-primary"
         id="ocrButton"
@@ -76,7 +81,10 @@
         placeholder="예: 임차인은 모든 수리비를 부담한다. 임대인은 필요 시 계약을 해지할 수 있다."
         oninput="handleDirectTextInput()"
       ></textarea>
-
+      <div class="notice-box">
+      ⚠️ 개인정보는 입력하지 마세요.<br>
+※ AI 참고용 분석 결과이며 법적 효력이 없습니다.
+      </div>
       <button
         class="btn-primary dark"
         id="directAnalyzeButton"
@@ -138,11 +146,10 @@
       분석 결과 요약
     </div>
 
-    <p>남은 조항 : <span id="totalCount">0</span>개</p>
+    <p>총 조항 : <span id="totalCount">0</span>개</p>
     <p>안전 : <span id="safeCount">0</span>개</p>
     <p>위험 : <span id="dangerCount">0</span>개</p>
     <p>판단불가 : <span id="unknownCount">0</span>개</p>
-    <p>오류 : <span id="errorCount">0</span>개</p>
 
   </div>
 
